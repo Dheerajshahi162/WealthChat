@@ -8,13 +8,12 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-// ✅ USERS STORE
+// USERS STORE
 let users = {};
 
 io.on("connection", (socket) => {
     console.log("User connected");
 
-    // ✅ JOIN EVENT
     socket.on("join", (username) => {
         users[socket.id] = username;
 
@@ -24,12 +23,10 @@ io.on("connection", (socket) => {
         });
     });
 
-    // ✅ CHAT MESSAGE
     socket.on("chat message", (data) => {
         io.emit("chat message", data);
     });
 
-    // ✅ DISCONNECT
     socket.on("disconnect", () => {
         if (users[socket.id]) {
             io.emit("chat message", {
@@ -44,7 +41,9 @@ io.on("connection", (socket) => {
     });
 });
 
-// ✅ SERVER START
-server.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+// ✅ IMPORTANT FIX
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
