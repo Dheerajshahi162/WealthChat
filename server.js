@@ -15,7 +15,7 @@ const io = new Server(server, {
 app.use(express.static("public"));
 
 // 🔥 MongoDB connection
-const uri = "mongodb+srv://dheerajshahi162:dheerajshahi162@wealthchat.berts9p.mongodb.net/?retryWrites=true&w=majority&appName=wealthchat";
+const uri = "mongodb+srv://dheerajshahi162:chat123@wealthchat.berts9p.mongodb.net/?retryWrites=true&w=majority&appName=wealthchat";
 const client = new MongoClient(uri);
 
 let users = {};
