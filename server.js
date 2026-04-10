@@ -15,27 +15,37 @@ app.use(express.static("public"));
 
 // USERS STORE
 let users = {};
-let lastMessageTime = {}; // 🔥 anti-spam
+let lastMessageTime = {};
+let messages = []; // 🔥 CHAT HISTORY STORE
 
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
+    // 🔥 SEND OLD MESSAGES WHEN USER JOINS
+    socket.emit("chat history", messages);
+
+    // ✅ JOIN EVENT
     socket.on("join", (username) => {
         if (!username || typeof username !== "string") return;
 
         username = username.trim().substring(0, 20);
         users[socket.id] = username;
 
-        io.emit("chat message", {
+        const joinMsg = {
             name: "System",
             message: `${username} joined the chat`
-        });
+        };
+
+        messages.push(joinMsg);
+
+        io.emit("chat message", joinMsg);
     });
 
+    // ✅ CHAT MESSAGE
     socket.on("chat message", (data) => {
-        if (!data || !data.message) return;
+        if (!data || typeof data.message !== "string") return;
 
-        // 🔥 anti-spam (1 sec)
+        // 🔥 ANTI-SPAM
         const now = Date.now();
         if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) {
             return;
@@ -44,18 +54,33 @@ io.on("connection", (socket) => {
 
         const message = data.message.substring(0, 200);
 
-        io.emit("chat message", {
+        const messageData = {
             name: users[socket.id] || "Guest",
             message: message
-        });
+        };
+
+        // 💾 SAVE MESSAGE
+        messages.push(messageData);
+
+        // 🔥 LIMIT (last 100 messages)
+        if (messages.length > 100) {
+            messages.shift();
+        }
+
+        io.emit("chat message", messageData);
     });
 
+    // ✅ DISCONNECT
     socket.on("disconnect", () => {
         if (users[socket.id]) {
-            io.emit("chat message", {
+            const leaveMsg = {
                 name: "System",
                 message: `${users[socket.id]} left the chat`
-            });
+            };
+
+            messages.push(leaveMsg);
+
+            io.emit("chat message", leaveMsg);
 
             delete users[socket.id];
             delete lastMessageTime[socket.id];

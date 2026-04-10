@@ -13,7 +13,7 @@ if (!username) {
     localStorage.setItem("username", username);
 }
 
-// limit
+// limit username
 if (username.length > 20) {
     username = username.substring(0, 20);
 }
@@ -39,14 +39,13 @@ function send() {
     });
 
     msgInput.value = "";
-
     document.getElementById("emoji-picker").classList.add("hidden");
 }
 
 // =====================================
-// 🔥 3. RECEIVE MESSAGE (SAFE)
+// 🔥 3. RENDER MESSAGE (COMMON FUNCTION)
 // =====================================
-socket.on("chat message", function(data) {
+function renderMessage(data) {
     const chat = document.getElementById("chat");
     const div = document.createElement("div");
 
@@ -73,52 +72,51 @@ socket.on("chat message", function(data) {
 
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
+}
+
+// =====================================
+// 🔥 4. RECEIVE MESSAGE
+// =====================================
+socket.on("chat message", function(data) {
+    renderMessage(data);
 });
 
 // =====================================
-// 🔥 4. CHAT HISTORY (NEW)
+// 🔥 5. CHAT HISTORY (FIXED)
 // =====================================
 socket.on("chat history", function(msgs) {
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
 
     msgs.forEach(data => {
-        const div = document.createElement("div");
-        div.classList.add("message");
-
-        if (data.name === username) {
-            div.classList.add("you");
-            div.innerHTML = `<b>You:</b> ${data.message}`;
-        } else {
-            div.classList.add("other");
-            div.innerHTML = `<b>${data.name}:</b> ${data.message}`;
-        }
-
-        chat.appendChild(div);
+        renderMessage(data);
     });
-
-    chat.scrollTop = chat.scrollHeight;
 });
 
 // =====================================
-// ✍️ 5. TYPING INDICATOR
+// ✍️ 6. TYPING INDICATOR (FIXED)
 // =====================================
+let typingTimeout;
+
 document.getElementById("msg").addEventListener("input", () => {
-    socket.emit("typing");
+    socket.emit("typing", username);
 });
 
 socket.on("typing", function(name) {
     const typingBox = document.getElementById("typing");
 
+    if (name === username) return;
+
     typingBox.innerText = name + " is typing...";
 
-    setTimeout(() => {
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
         typingBox.innerText = "";
-    }, 1000);
+    }, 1500);
 });
 
 // =====================================
-// 👥 6. USER COUNT
+// 👥 7. USER COUNT
 // =====================================
 socket.on("user count", function(count) {
     const userBox = document.getElementById("users");
