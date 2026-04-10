@@ -2,12 +2,12 @@
 html, body {
     height: 100%;
     margin: 0;
-    font-family: Arial;
+    font-family: 'Segoe UI', Arial;
     color: white;
     overflow: hidden;
 }
 
-/* 🌌 BACKGROUND SLIDER */
+/* 🌌 BACKGROUND */
 .bg-slider {
     position: fixed;
     width: 100%;
@@ -28,117 +28,167 @@ html, body {
     opacity: 1;
 }
 
-/* MAIN CONTAINER */
-.chat-container {
-    max-width: 500px;
-    margin: auto;
+/* 🔥 LOGIN */
+.login {
     height: 100%;
     display: flex;
     flex-direction: column;
-
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(20px);
-
-    border-radius: 12px;
-    position: relative;
-    z-index: 2;
-
-    /* 🔥 NEW: shadow */
-    box-shadow: 0 0 25px rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.8);
 }
 
-/* 🔥 HEADER PRO */
+.login h2 {
+    color: gold;
+}
+
+.login input {
+    padding: 10px;
+    margin: 10px;
+    width: 220px;
+    border-radius: 6px;
+    border: none;
+}
+
+/* 🔥 AVATAR */
+.avatar-select {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 280px;
+}
+
+.avatar-select img {
+    width: 50px;
+    margin: 5px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.avatar-select img:hover {
+    transform: scale(1.1);
+}
+
+.avatar-select img.selected {
+    border: 2px solid gold;
+    transform: scale(1.1);
+}
+
+/* MAIN */
+.app {
+    display: flex;
+    height: 100%;
+}
+
+/* 🔥 SIDEBAR */
+.sidebar {
+    width: 30%;
+    background: rgba(0,0,0,0.9);
+    border-right: 1px solid #333;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    text-align: center;
+    color: gold;
+}
+
+/* USER LIST */
+#userList div {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#userList div:hover {
+    background: #222;
+}
+
+/* CHAT */
+.chat-section {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.75);
+}
+
+/* HEADER */
 .header {
     background: linear-gradient(135deg, #000, #111, #222);
-    padding: 18px;
+    padding: 15px;
     text-align: center;
-    font-size: 22px;
     font-weight: bold;
-    border-bottom: 2px solid gold;
     color: gold;
-    letter-spacing: 2px;
-    animation: glow 2s infinite alternate;
+    border-bottom: 2px solid gold;
 }
 
-.header .sub {
+/* STATUS */
+#status {
     font-size: 12px;
     color: #ccc;
-    margin-top: 5px;
 }
 
-/* ✨ glow effect */
-@keyframes glow {
-    from { text-shadow: 0 0 5px gold; }
-    to { text-shadow: 0 0 20px gold; }
-}
-
-/* CHAT AREA */
+/* CHAT BOX */
 .chat-box {
     flex: 1;
     padding: 10px;
     overflow-y: auto;
-
-    /* 🔥 NEW: smooth scroll */
     scroll-behavior: smooth;
+}
+
+/* 🔥 SCROLLBAR */
+.chat-box::-webkit-scrollbar {
+    width: 5px;
+}
+.chat-box::-webkit-scrollbar-thumb {
+    background: gold;
+    border-radius: 10px;
 }
 
 /* MESSAGE */
 .message {
     max-width: 70%;
-    padding: 10px 14px;
-    margin: 6px 0;
+    padding: 10px;
+    margin: 6px;
     border-radius: 12px;
-    font-size: 14px;
-    word-wrap: break-word;
     animation: fadeIn 0.3s ease;
-
-    /* 🔥 NEW: shadow */
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-/* ✨ message animation */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
+/* YOU */
 .message.you {
-    background: #2b2b2b;
+    background: linear-gradient(135deg, #2b2b2b, #444);
     margin-left: auto;
     color: yellow;
-    text-align: right;
+    border-bottom-right-radius: 0;
 }
 
+/* OTHER */
 .message.other {
-    background: #1a1a1a;
-    margin-right: auto;
-    color: white;
-    text-align: left;
+    background: linear-gradient(135deg, #1a1a1a, #333);
+    border-bottom-left-radius: 0;
 }
 
+/* SYSTEM */
 .message.system {
     text-align: center;
     color: gray;
-    font-style: italic;
 }
 
-/* 🔥 NEW: typing indicator */
-#typing {
+/* ANIMATION */
+@keyframes fadeIn {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1; transform:translateY(0);}
+}
+
+/* TYPING */
+.typing {
     font-size: 12px;
     color: #aaa;
-    padding: 5px 10px;
-}
-
-/* 🔥 NEW: online users */
-#users {
-    font-size: 12px;
-    color: #ccc;
     padding: 5px 10px;
 }
 
@@ -150,24 +200,25 @@ html, body {
     border-top: 2px solid gold;
 }
 
-input {
+.input-box input {
     flex: 1;
     padding: 10px;
-    margin-right: 5px;
-    border: none;
-    outline: none;
     border-radius: 6px;
+    border: none;
+}
+
+/* INPUT FOCUS */
+.input-box input:focus {
+    outline: 2px solid gold;
 }
 
 /* BUTTON */
 button {
-    padding: 10px 15px;
+    padding: 10px;
     background: gold;
     border: none;
-    cursor: pointer;
     border-radius: 6px;
-
-    /* 🔥 NEW: hover effect */
+    cursor: pointer;
     transition: 0.2s;
 }
 
@@ -175,60 +226,57 @@ button:hover {
     background: orange;
 }
 
-/* 😀 EMOJI BAR */
-.emoji-bar {
-    padding: 8px;
-    background: #000;
-    border-top: 1px solid #333;
+button:active {
+    transform: scale(0.95);
 }
 
-/* 🔥 EMOJI PICKER FIX */
+/* 🔥 EMOJI PICKER */
 .emoji-picker {
     position: fixed;
-    bottom: 100px;
+    bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
-    width: 95%;
-    max-width: 500px;
+    width: 90%;
+    max-width: 400px;
 
     background: rgba(20,20,20,0.95);
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 10px;
 
-    z-index: 999;
-    animation: popup 0.2s ease;
+    max-height: 200px;
+    overflow-y: auto;
 
-    /* 🔥 NEW: shadow */
     box-shadow: 0 0 15px rgba(0,0,0,0.6);
 }
 
-/* popup animation */
-@keyframes popup {
-    from {
-        transform: translate(-50%, 20px);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, 0);
-        opacity: 1;
-    }
+/* EMOJI */
+.emoji-row span {
+    font-size: 20px;
+    margin: 5px;
+    cursor: pointer;
+    transition: 0.2s;
 }
 
+.emoji-row span:hover {
+    transform: scale(1.2);
+}
+
+/* HIDDEN */
 .hidden {
     display: none;
 }
 
-/* EMOJI STYLE */
-.emoji {
-    font-size: 22px;
-    padding: 6px;
-    cursor: pointer;
-    border-radius: 6px;
-    display: inline-block;
-    transition: 0.2s;
-}
+/* 📱 MOBILE */
+@media (max-width: 600px) {
+    .sidebar {
+        display: none;
+    }
 
-.emoji:hover {
-    background: #333;
-    transform: scale(1.2);
+    .chat-section {
+        width: 100%;
+    }
+
+    .login input {
+        width: 80%;
+    }
 }

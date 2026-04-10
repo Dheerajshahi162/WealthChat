@@ -1,49 +1,83 @@
 const socket = io();
 
-// 🔔 MESSAGE SOUND
+// 🔔 SOUND (optimized)
 const msgSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
 
 // =====================================
-// 🔥 1. USERNAME AUTO (NO POPUP)
+// 🔥 GLOBAL STATE
 // =====================================
 let username = localStorage.getItem("username");
-
-if (!username) {
-    username = "User" + Math.floor(Math.random() * 10000);
-    localStorage.setItem("username", username);
-}
-
-// limit username
-if (username.length > 20) {
-    username = username.substring(0, 20);
-}
-
-socket.emit("join", username);
+let avatar = localStorage.getItem("avatar");
+let typingTimeout;
+let isTyping = false;
 
 // =====================================
-// 🔥 2. SEND MESSAGE
+// 🔥 AUTO LOGIN (NEW)
+// =====================================
+window.onload = () => {
+    if (username) {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+
+        socket.emit("join", { name: username, avatar });
+    }
+};
+
+// =====================================
+// 🔥 AVATAR SELECT
+// =====================================
+function selectAvatar(img) {
+    document.querySelectorAll(".avatar-select img").forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+    avatar = img.src;
+}
+
+// =====================================
+// 🔥 START CHAT
+// =====================================
+function startChat() {
+    const nameInput = document.getElementById("name").value.trim();
+
+    if (!nameInput) {
+        alert("Enter name!");
+        return;
+    }
+
+    username = nameInput.substring(0, 20);
+    avatar = avatar || "https://i.pravatar.cc/100";
+
+    localStorage.setItem("username", username);
+    localStorage.setItem("avatar", avatar);
+
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+
+    socket.emit("join", { name: username, avatar });
+}
+
+// =====================================
+// 🔥 SEND MESSAGE
 // =====================================
 function send() {
-    const msgInput = document.getElementById("msg");
-    const msg = msgInput.value.trim();
+    const input = document.getElementById("msg");
+    const msg = input.value.trim();
 
     if (!msg) return;
 
     if (msg.length > 200) {
-        alert("Max 200 characters allowed!");
+        alert("Max 200 characters!");
         return;
     }
 
-    socket.emit("chat message", {
-        message: msg
-    });
+    socket.emit("chat message", { message: msg });
 
-    msgInput.value = "";
+    input.value = "";
+    stopTyping();
     document.getElementById("emoji-picker").classList.add("hidden");
 }
 
 // =====================================
-// 🔥 3. RENDER MESSAGE (COMMON FUNCTION)
+// 🔥 RENDER MESSAGE (UPGRADED)
 // =====================================
 function renderMessage(data) {
     const chat = document.getElementById("chat");
@@ -63,7 +97,11 @@ function renderMessage(data) {
         } else {
             div.classList.add("other");
             nameTag.textContent = `${data.name}: `;
-            msgSound.play().catch(() => {});
+
+            // 🔔 play only if tab active
+            if (!document.hidden) {
+                msgSound.play().catch(() => {});
+            }
         }
 
         div.appendChild(nameTag);
@@ -75,86 +113,93 @@ function renderMessage(data) {
 }
 
 // =====================================
-// 🔥 4. RECEIVE MESSAGE
+// 🔥 SOCKET EVENTS
 // =====================================
-socket.on("chat message", function(data) {
-    renderMessage(data);
-});
+socket.on("chat message", renderMessage);
 
-// =====================================
-// 🔥 5. CHAT HISTORY (FIXED)
-// =====================================
-socket.on("chat history", function(msgs) {
+socket.on("chat history", (msgs) => {
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
-
-    msgs.forEach(data => {
-        renderMessage(data);
-    });
+    msgs.forEach(renderMessage);
 });
 
 // =====================================
-// ✍️ 6. TYPING INDICATOR (FIXED)
+// ✍️ TYPING SYSTEM (ADVANCED)
 // =====================================
-let typingTimeout;
+const msgInput = document.getElementById("msg");
 
-document.getElementById("msg").addEventListener("input", () => {
-    socket.emit("typing", username);
+msgInput.addEventListener("input", () => {
+    if (!isTyping) {
+        socket.emit("typing", username);
+        isTyping = true;
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 1200);
 });
 
-socket.on("typing", function(name) {
-    const typingBox = document.getElementById("typing");
+function stopTyping() {
+    isTyping = false;
+}
 
+socket.on("typing", (name) => {
     if (name === username) return;
 
-    typingBox.innerText = name + " is typing...";
+    const box = document.getElementById("typing");
+    box.innerText = name + " is typing...";
 
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
-        typingBox.innerText = "";
+        box.innerText = "";
     }, 1500);
 });
 
 // =====================================
-// 👥 7. USER COUNT
+// 👥 USER LIST
 // =====================================
-socket.on("user count", function(count) {
-    const userBox = document.getElementById("users");
-    userBox.innerText = "👥 Online: " + count;
+socket.on("user list", (users) => {
+    const list = document.getElementById("userList");
+    list.innerHTML = "";
+
+    users.forEach(u => {
+        const div = document.createElement("div");
+
+        div.innerHTML = `
+            <img src="${u.avatar}" width="30" style="border-radius:50%; margin-right:8px;">
+            ${u.name}
+        `;
+
+        list.appendChild(div);
+    });
+});
+
+// =====================================
+// 👥 USER COUNT
+// =====================================
+socket.on("user count", (count) => {
+    document.getElementById("status").innerText = "🟢 Online: " + count;
 });
 
 // =====================================
 // 😀 EMOJI SYSTEM
 // =====================================
-const emojis = [
-    "😀","😂","😍","😎","🔥","❤️","👍","🥳","😱","🤩",
-    "😜","🤔","😴","😡","😭","😇","😉","🙃","😅","🤣"
-];
-
-function loadEmojis() {
-    const container = document.getElementById("emoji-list");
-    container.innerHTML = "";
-
-    emojis.forEach(e => {
-        const span = document.createElement("span");
-        span.classList.add("emoji");
-        span.innerText = e;
-
-        span.onclick = () => {
-            const input = document.getElementById("msg");
-            input.value += e;
-            input.focus();
-        };
-
-        container.appendChild(span);
-    });
-}
-
 function toggleEmoji() {
     document.getElementById("emoji-picker").classList.toggle("hidden");
 }
 
-loadEmojis();
+function addEmoji(e) {
+    const input = document.getElementById("msg");
+    input.value += e;
+    input.focus();
+}
+
+// click outside = close emoji
+document.addEventListener("click", (e) => {
+    const picker = document.getElementById("emoji-picker");
+    if (picker && !picker.contains(e.target) && e.target.innerText !== "😊") {
+        picker.classList.add("hidden");
+    }
+});
 
 // =====================================
 // 🌌 BACKGROUND SLIDER
@@ -169,8 +214,25 @@ setInterval(() => {
 }, 8000);
 
 // =====================================
-// ENTER KEY
+// ⌨️ ENTER KEY
 // =====================================
-document.getElementById("msg").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") send();
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("msg").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") send();
+    });
+
+    document.getElementById("name").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") startChat();
+    });
+});
+
+// =====================================
+// 🌐 ONLINE / OFFLINE DETECT
+// =====================================
+window.addEventListener("offline", () => {
+    document.getElementById("status").innerText = "🔴 Offline";
+});
+
+window.addEventListener("online", () => {
+    document.getElementById("status").innerText = "🟢 Online";
 });

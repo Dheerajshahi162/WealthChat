@@ -1,56 +1,140 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WealthChat</title>
+    <title>WealthChat Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- 🌌 BACKGROUND SLIDER -->
-<div class="bg-slider">
-    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb" class="active">
-    <img src="https://images.unsplash.com/photo-1493244040629-496f6d136cc3">
-    <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308">
-    <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee">
+<!-- 🔥 LOGIN -->
+<div id="login" class="login">
+    <h2>💬 WealthChat</h2>
+
+    <input id="name" placeholder="Enter your name" autocomplete="off">
+
+    <!-- 👇 AVATAR SELECT -->
+    <div class="avatar-select" id="avatars">
+        <img src="https://i.pravatar.cc/100?img=1" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=2" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=3" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=4" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=5" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=6" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=7" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=8" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=9" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=10" onclick="selectAvatar(this)">
+    </div>
+
+    <button onclick="startChat()">Start Chat</button>
 </div>
 
-<div class="chat-container">
+<!-- 🔥 MAIN APP -->
+<div id="app" class="app hidden">
 
-    <!-- 🔥 HEADER -->
-    <div class="header">
-        💬 WealthChat  
-        <div class="sub">Real-time chat 🚀</div>
+    <!-- 👥 SIDEBAR -->
+    <div class="sidebar">
+        <h3>👥 Users</h3>
+        <div id="userList"></div>
     </div>
-
-    <!-- 👥 ONLINE USERS -->
-    <div id="users"></div>
 
     <!-- 💬 CHAT -->
-    <div id="chat" class="chat-box"></div>
+    <div class="chat-section">
 
-    <!-- ✍️ TYPING -->
-    <div id="typing"></div>
+        <!-- 🔝 HEADER -->
+        <div class="header">
+            💬 WealthChat
+            <div id="status">🟢 Online: 0</div>
+        </div>
 
-    <!-- 😀 EMOJI BUTTON -->
-    <div class="emoji-bar">
-        <button onclick="toggleEmoji()">😊</button>
-    </div>
+        <!-- 💬 MESSAGES -->
+        <div id="chat" class="chat-box"></div>
 
-    <!-- 😀 EMOJI PICKER -->
-    <div id="emoji-picker" class="emoji-picker hidden">
-        <div id="emoji-list"></div>
-    </div>
+        <!-- ✍️ TYPING -->
+        <div id="typing" class="typing"></div>
 
-    <!-- 📩 INPUT -->
-    <div class="input-box">
-        <input id="msg" placeholder="Type message..." autocomplete="off">
-        <button onclick="send()">Send</button>
+        <!-- 📩 INPUT -->
+        <div class="input-box">
+            <button onclick="toggleEmoji()">😊</button>
+            <input id="msg" placeholder="Type message..." autocomplete="off">
+            <button onclick="send()">➤</button>
+        </div>
+
+        <!-- 😀 EMOJI PICKER -->
+        <div id="emoji-picker" class="emoji-picker hidden">
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('😀')">😀</span>
+                <span onclick="addEmoji('😁')">😁</span>
+                <span onclick="addEmoji('😂')">😂</span>
+                <span onclick="addEmoji('🤣')">🤣</span>
+                <span onclick="addEmoji('😊')">😊</span>
+                <span onclick="addEmoji('😍')">😍</span>
+                <span onclick="addEmoji('😎')">😎</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('👍')">👍</span>
+                <span onclick="addEmoji('👎')">👎</span>
+                <span onclick="addEmoji('👏')">👏</span>
+                <span onclick="addEmoji('🙏')">🙏</span>
+                <span onclick="addEmoji('🔥')">🔥</span>
+                <span onclick="addEmoji('💯')">💯</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('❤️')">❤️</span>
+                <span onclick="addEmoji('💛')">💛</span>
+                <span onclick="addEmoji('💙')">💙</span>
+                <span onclick="addEmoji('💜')">💜</span>
+                <span onclick="addEmoji('💔')">💔</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('🎉')">🎉</span>
+                <span onclick="addEmoji('🎂')">🎂</span>
+                <span onclick="addEmoji('🍕')">🍕</span>
+                <span onclick="addEmoji('🍔')">🍔</span>
+                <span onclick="addEmoji('🍟')">🍟</span>
+            </div>
+
+        </div>
+
     </div>
 
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="script.js"></script>
+
+<!-- 🔥 UX IMPROVEMENT SCRIPT -->
+<script>
+    // ENTER key = send message
+    document.addEventListener("DOMContentLoaded", () => {
+        const msgInput = document.getElementById("msg");
+        const nameInput = document.getElementById("name");
+
+        if (msgInput) {
+            msgInput.addEventListener("keypress", function(e) {
+                if (e.key === "Enter") send();
+            });
+        }
+
+        if (nameInput) {
+            nameInput.addEventListener("keypress", function(e) {
+                if (e.key === "Enter") startChat();
+            });
+        }
+
+        // click outside emoji = close
+        document.addEventListener("click", function(e) {
+            const picker = document.getElementById("emoji-picker");
+            if (!picker.contains(e.target) && e.target.innerText !== "😊") {
+                picker.classList.add("hidden");
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
