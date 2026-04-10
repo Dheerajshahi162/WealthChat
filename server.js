@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { MongoClient } = require("mongodb");
 
 const app = express();
 const server = http.createServer(app);
@@ -13,84 +14,99 @@ const io = new Server(server, {
 
 app.use(express.static("public"));
 
-// USERS STORE
+// 🔥 MongoDB connection
+const uri = "mongodb+srv://dheerajshahi162:Dheeraj@1994@wealthchat.berts9p.mongodb.net/?retryWrites=true&w=majority&appName=wealthchat";
+const client = new MongoClient(uri);
+
 let users = {};
 let lastMessageTime = {};
-let messages = []; // 🔥 CHAT HISTORY STORE
+let messages = [];
 
-io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+async function startServer() {
+    await client.connect();
+    console.log("✅ MongoDB Connected");
 
-    // 🔥 SEND OLD MESSAGES WHEN USER JOINS
-    socket.emit("chat history", messages);
+    const db = client.db("chatDB");
+    const collection = db.collection("messages");
 
-    // ✅ JOIN EVENT
-    socket.on("join", (username) => {
-        if (!username || typeof username !== "string") return;
+    // 🔥 Load old messages
+    messages = await collection.find().sort({ _id: 1 }).limit(100).toArray();
 
-        username = username.trim().substring(0, 20);
-        users[socket.id] = username;
+    io.on("connection", (socket) => {
+        console.log("User connected:", socket.id);
 
-        const joinMsg = {
-            name: "System",
-            message: `${username} joined the chat`
-        };
+        // 🔥 Send old messages
+        socket.emit("chat history", messages);
 
-        messages.push(joinMsg);
+        // ✅ JOIN
+        socket.on("join", (username) => {
+            if (!username || typeof username !== "string") return;
 
-        io.emit("chat message", joinMsg);
-    });
+            username = username.trim().substring(0, 20);
+            users[socket.id] = username;
 
-    // ✅ CHAT MESSAGE
-    socket.on("chat message", (data) => {
-        if (!data || typeof data.message !== "string") return;
-
-        // 🔥 ANTI-SPAM
-        const now = Date.now();
-        if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) {
-            return;
-        }
-        lastMessageTime[socket.id] = now;
-
-        const message = data.message.substring(0, 200);
-
-        const messageData = {
-            name: users[socket.id] || "Guest",
-            message: message
-        };
-
-        // 💾 SAVE MESSAGE
-        messages.push(messageData);
-
-        // 🔥 LIMIT (last 100 messages)
-        if (messages.length > 100) {
-            messages.shift();
-        }
-
-        io.emit("chat message", messageData);
-    });
-
-    // ✅ DISCONNECT
-    socket.on("disconnect", () => {
-        if (users[socket.id]) {
-            const leaveMsg = {
+            const joinMsg = {
                 name: "System",
-                message: `${users[socket.id]} left the chat`
+                message: `${username} joined the chat`
             };
 
-            messages.push(leaveMsg);
+            messages.push(joinMsg);
+            collection.insertOne(joinMsg); // 💾 DB save
 
-            io.emit("chat message", leaveMsg);
+            io.emit("chat message", joinMsg);
+        });
 
-            delete users[socket.id];
-            delete lastMessageTime[socket.id];
-        }
+        // ✅ MESSAGE
+        socket.on("chat message", async (data) => {
+            if (!data || typeof data.message !== "string") return;
 
-        console.log("User disconnected:", socket.id);
+            // 🔥 Anti-spam
+            const now = Date.now();
+            if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) {
+                return;
+            }
+            lastMessageTime[socket.id] = now;
+
+            const messageData = {
+                name: users[socket.id] || "Guest",
+                message: data.message.substring(0, 200)
+            };
+
+            messages.push(messageData);
+
+            // 🔥 Limit memory
+            if (messages.length > 100) messages.shift();
+
+            await collection.insertOne(messageData); // 💾 DB save
+
+            io.emit("chat message", messageData);
+        });
+
+        // ✅ DISCONNECT
+        socket.on("disconnect", () => {
+            if (users[socket.id]) {
+                const leaveMsg = {
+                    name: "System",
+                    message: `${users[socket.id]} left the chat`
+                };
+
+                messages.push(leaveMsg);
+                collection.insertOne(leaveMsg);
+
+                io.emit("chat message", leaveMsg);
+
+                delete users[socket.id];
+                delete lastMessageTime[socket.id];
+            }
+
+            console.log("User disconnected:", socket.id);
+        });
     });
-});
+}
 
-// PORT FIX
+startServer();
+
+// PORT
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
