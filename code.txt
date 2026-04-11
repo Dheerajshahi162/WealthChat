@@ -1,3 +1,686 @@
+index.html:
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WealthChat Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 🔥 LOGIN -->
+<div id="login" class="login">
+    <h2>💬 WealthChat</h2>
+
+    <input id="name" placeholder="Enter your name" autocomplete="off">
+
+    <!-- 👇 AVATAR SELECT -->
+    <div class="avatar-select" id="avatars">
+        <img src="https://i.pravatar.cc/100?img=1" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=2" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=3" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=4" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=5" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=6" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=7" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=8" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=9" onclick="selectAvatar(this)">
+        <img src="https://i.pravatar.cc/100?img=10" onclick="selectAvatar(this)">
+    </div>
+
+    <button onclick="startChat()">Start Chat</button>
+</div>
+
+<!-- 🔥 MAIN APP -->
+<div id="app" class="app hidden">
+
+    <!-- 👥 SIDEBAR -->
+    <div class="sidebar">
+        <h3>👥 Users</h3>
+        <div id="userList"></div>
+    </div>
+
+    <!-- 💬 CHAT -->
+    <div class="chat-section">
+
+        <!-- 🔝 HEADER -->
+        <div class="header">
+            💬 WealthChat
+            <div id="status">🟢 Online: 0</div>
+        </div>
+
+        <!-- 💬 MESSAGES -->
+        <div id="chat" class="chat-box"></div>
+
+        <!-- ✍️ TYPING -->
+        <div id="typing" class="typing"></div>
+
+        <!-- 📩 INPUT -->
+        <div class="input-box">
+            <button onclick="toggleEmoji()">😊</button>
+            <input id="msg" placeholder="Type message..." autocomplete="off">
+            <button onclick="send()">➤</button>
+        </div>
+
+        <!-- 😀 EMOJI PICKER -->
+        <div id="emoji-picker" class="emoji-picker hidden">
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('😀')">😀</span>
+                <span onclick="addEmoji('😁')">😁</span>
+                <span onclick="addEmoji('😂')">😂</span>
+                <span onclick="addEmoji('🤣')">🤣</span>
+                <span onclick="addEmoji('😊')">😊</span>
+                <span onclick="addEmoji('😍')">😍</span>
+                <span onclick="addEmoji('😎')">😎</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('👍')">👍</span>
+                <span onclick="addEmoji('👎')">👎</span>
+                <span onclick="addEmoji('👏')">👏</span>
+                <span onclick="addEmoji('🙏')">🙏</span>
+                <span onclick="addEmoji('🔥')">🔥</span>
+                <span onclick="addEmoji('💯')">💯</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('❤️')">❤️</span>
+                <span onclick="addEmoji('💛')">💛</span>
+                <span onclick="addEmoji('💙')">💙</span>
+                <span onclick="addEmoji('💜')">💜</span>
+                <span onclick="addEmoji('💔')">💔</span>
+            </div>
+
+            <div class="emoji-row">
+                <span onclick="addEmoji('🎉')">🎉</span>
+                <span onclick="addEmoji('🎂')">🎂</span>
+                <span onclick="addEmoji('🍕')">🍕</span>
+                <span onclick="addEmoji('🍔')">🍔</span>
+                <span onclick="addEmoji('🍟')">🍟</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+
+<!-- 🔥 UX IMPROVEMENT SCRIPT -->
+<script>
+    // ENTER key = send message
+    document.addEventListener("DOMContentLoaded", () => {
+        const msgInput = document.getElementById("msg");
+        const nameInput = document.getElementById("name");
+
+        if (msgInput) {
+            msgInput.addEventListener("keypress", function(e) {
+                if (e.key === "Enter") send();
+            });
+        }
+
+        if (nameInput) {
+            nameInput.addEventListener("keypress", function(e) {
+                if (e.key === "Enter") startChat();
+            });
+        }
+
+        // click outside emoji = close
+        document.addEventListener("click", function(e) {
+            const picker = document.getElementById("emoji-picker");
+            if (!picker.contains(e.target) && e.target.innerText !== "😊") {
+                picker.classList.add("hidden");
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
+
+
+script.js :
+
+const socket = io();
+
+// 🔔 SOUND (optimized)
+const msgSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
+
+// =====================================
+// 🔥 GLOBAL STATE
+// =====================================
+let username = localStorage.getItem("username");
+let avatar = localStorage.getItem("avatar");
+let typingTimeout;
+let isTyping = false;
+
+// =====================================
+// 🔥 AUTO LOGIN (NEW)
+// =====================================
+window.onload = () => {
+    if (username) {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+
+        socket.emit("join", { name: username, avatar });
+    }
+};
+
+// =====================================
+// 🔥 AVATAR SELECT
+// =====================================
+function selectAvatar(img) {
+    document.querySelectorAll(".avatar-select img").forEach(i => i.classList.remove("selected"));
+    img.classList.add("selected");
+    avatar = img.src;
+}
+
+// =====================================
+// 🔥 START CHAT
+// =====================================
+function startChat() {
+    const nameInput = document.getElementById("name").value.trim();
+
+    if (!nameInput) {
+        alert("Enter name!");
+        return;
+    }
+
+    username = nameInput.substring(0, 20);
+    avatar = avatar || "https://i.pravatar.cc/100";
+
+    localStorage.setItem("username", username);
+    localStorage.setItem("avatar", avatar);
+
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+
+    socket.emit("join", { name: username, avatar });
+}
+
+// =====================================
+// 🔥 SEND MESSAGE
+// =====================================
+function send() {
+    const input = document.getElementById("msg");
+    const msg = input.value.trim();
+
+    if (!msg) return;
+
+    if (msg.length > 200) {
+        alert("Max 200 characters!");
+        return;
+    }
+
+    socket.emit("chat message", { message: msg });
+
+    input.value = "";
+    stopTyping();
+    document.getElementById("emoji-picker").classList.add("hidden");
+}
+
+// =====================================
+// 🔥 RENDER MESSAGE (UPGRADED)
+// =====================================
+function renderMessage(data) {
+    const chat = document.getElementById("chat");
+    const div = document.createElement("div");
+
+    div.classList.add("message");
+
+    if (data.name === "System") {
+        div.classList.add("system");
+        div.textContent = data.message;
+    } else {
+        const nameTag = document.createElement("b");
+
+        if (data.name === username) {
+            div.classList.add("you");
+            nameTag.textContent = "You: ";
+        } else {
+            div.classList.add("other");
+            nameTag.textContent = `${data.name}: `;
+
+            // 🔔 play only if tab active
+            if (!document.hidden) {
+                msgSound.play().catch(() => {});
+            }
+        }
+
+        div.appendChild(nameTag);
+        div.appendChild(document.createTextNode(data.message));
+    }
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// =====================================
+// 🔥 SOCKET EVENTS
+// =====================================
+socket.on("chat message", renderMessage);
+
+socket.on("chat history", (msgs) => {
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+    msgs.forEach(renderMessage);
+});
+
+// =====================================
+// ✍️ TYPING SYSTEM (ADVANCED)
+// =====================================
+const msgInput = document.getElementById("msg");
+
+msgInput.addEventListener("input", () => {
+    if (!isTyping) {
+        socket.emit("typing", username);
+        isTyping = true;
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 1200);
+});
+
+function stopTyping() {
+    isTyping = false;
+}
+
+socket.on("typing", (name) => {
+    if (name === username) return;
+
+    const box = document.getElementById("typing");
+    box.innerText = name + " is typing...";
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        box.innerText = "";
+    }, 1500);
+});
+
+// =====================================
+// 👥 USER LIST
+// =====================================
+socket.on("user list", (users) => {
+    const list = document.getElementById("userList");
+    list.innerHTML = "";
+
+    users.forEach(u => {
+        const div = document.createElement("div");
+
+        div.innerHTML = `
+            <img src="${u.avatar}" width="30" style="border-radius:50%; margin-right:8px;">
+            ${u.name}
+        `;
+
+        list.appendChild(div);
+    });
+});
+
+// =====================================
+// 👥 USER COUNT
+// =====================================
+socket.on("user count", (count) => {
+    document.getElementById("status").innerText = "🟢 Online: " + count;
+});
+
+// =====================================
+// 😀 EMOJI SYSTEM
+// =====================================
+function toggleEmoji() {
+    document.getElementById("emoji-picker").classList.toggle("hidden");
+}
+
+function addEmoji(e) {
+    const input = document.getElementById("msg");
+    input.value += e;
+    input.focus();
+}
+
+// click outside = close emoji
+document.addEventListener("click", (e) => {
+    const picker = document.getElementById("emoji-picker");
+    if (picker && !picker.contains(e.target) && e.target.innerText !== "😊") {
+        picker.classList.add("hidden");
+    }
+});
+
+// =====================================
+// 🌌 BACKGROUND SLIDER
+// =====================================
+const images = document.querySelectorAll(".bg-slider img");
+let index = 0;
+
+setInterval(() => {
+    images[index].classList.remove("active");
+    index = (index + 1) % images.length;
+    images[index].classList.add("active");
+}, 8000);
+
+// =====================================
+// ⌨️ ENTER KEY
+// =====================================
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("msg").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") send();
+    });
+
+    document.getElementById("name").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") startChat();
+    });
+});
+
+// =====================================
+// 🌐 ONLINE / OFFLINE DETECT
+// =====================================
+window.addEventListener("offline", () => {
+    document.getElementById("status").innerText = "🔴 Offline";
+});
+
+window.addEventListener("online", () => {
+    document.getElementById("status").innerText = "🟢 Online";
+});
+
+
+style.css
+
+
+/* FULL RESET */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Segoe UI', Arial;
+    color: white;
+    overflow: hidden;
+}
+
+/* 🌌 BACKGROUND */
+.bg-slider {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.bg-slider img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 4s ease-in-out;
+}
+
+.bg-slider img.active {
+    opacity: 1;
+}
+
+/* 🔥 LOGIN */
+.login {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.8);
+}
+
+.login h2 {
+    color: gold;
+}
+
+.login input {
+    padding: 10px;
+    margin: 10px;
+    width: 220px;
+    border-radius: 6px;
+    border: none;
+}
+
+/* 🔥 AVATAR */
+.avatar-select {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 280px;
+}
+
+.avatar-select img {
+    width: 50px;
+    margin: 5px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.avatar-select img:hover {
+    transform: scale(1.1);
+}
+
+.avatar-select img.selected {
+    border: 2px solid gold;
+    transform: scale(1.1);
+}
+
+/* MAIN */
+.app {
+    display: flex;
+    height: 100%;
+}
+
+/* 🔥 SIDEBAR */
+.sidebar {
+    width: 30%;
+    background: rgba(0,0,0,0.9);
+    border-right: 1px solid #333;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    text-align: center;
+    color: gold;
+}
+
+/* USER LIST */
+#userList div {
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#userList div:hover {
+    background: #222;
+}
+
+/* CHAT */
+.chat-section {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.75);
+}
+
+/* HEADER */
+.header {
+    background: linear-gradient(135deg, #000, #111, #222);
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    color: gold;
+    border-bottom: 2px solid gold;
+}
+
+/* STATUS */
+#status {
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* CHAT BOX */
+.chat-box {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+/* 🔥 SCROLLBAR */
+.chat-box::-webkit-scrollbar {
+    width: 5px;
+}
+.chat-box::-webkit-scrollbar-thumb {
+    background: gold;
+    border-radius: 10px;
+}
+
+/* MESSAGE */
+.message {
+    max-width: 70%;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 12px;
+    animation: fadeIn 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* YOU */
+.message.you {
+    background: linear-gradient(135deg, #2b2b2b, #444);
+    margin-left: auto;
+    color: yellow;
+    border-bottom-right-radius: 0;
+}
+
+/* OTHER */
+.message.other {
+    background: linear-gradient(135deg, #1a1a1a, #333);
+    border-bottom-left-radius: 0;
+}
+
+/* SYSTEM */
+.message.system {
+    text-align: center;
+    color: gray;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1; transform:translateY(0);}
+}
+
+/* TYPING */
+.typing {
+    font-size: 12px;
+    color: #aaa;
+    padding: 5px 10px;
+}
+
+/* INPUT */
+.input-box {
+    display: flex;
+    padding: 10px;
+    background: #000;
+    border-top: 2px solid gold;
+}
+
+.input-box input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+}
+
+/* INPUT FOCUS */
+.input-box input:focus {
+    outline: 2px solid gold;
+}
+
+/* BUTTON */
+button {
+    padding: 10px;
+    background: gold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: orange;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* 🔥 EMOJI PICKER */
+.emoji-picker {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+
+    background: rgba(20,20,20,0.95);
+    border-radius: 10px;
+    padding: 10px;
+
+    max-height: 200px;
+    overflow-y: auto;
+
+    box-shadow: 0 0 15px rgba(0,0,0,0.6);
+}
+
+/* EMOJI */
+.emoji-row span {
+    font-size: 20px;
+    margin: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.emoji-row span:hover {
+    transform: scale(1.2);
+}
+
+/* HIDDEN */
+.hidden {
+    display: none;
+}
+
+/* 📱 MOBILE */
+@media (max-width: 600px) {
+    .sidebar {
+        display: none;
+    }
+
+    .chat-section {
+        width: 100%;
+    }
+
+    .login input {
+        width: 80%;
+    }
+}
+
+
+.gitignore :
+
+node_modules
+.env
+
+
+
+package-lock.json :
+
+
 {
   "name": "wealthchat",
   "version": "1.0.0",
@@ -9,7 +692,6 @@
       "version": "1.0.0",
       "license": "ISC",
       "dependencies": {
-        "bcrypt": "^6.0.0",
         "express": "^5.2.1",
         "mongodb": "^7.1.1",
         "socket.io": "^4.8.3"
@@ -92,20 +774,6 @@
       "license": "MIT",
       "engines": {
         "node": "^4.5.0 || >= 5.9"
-      }
-    },
-    "node_modules/bcrypt": {
-      "version": "6.0.0",
-      "resolved": "https://registry.npmjs.org/bcrypt/-/bcrypt-6.0.0.tgz",
-      "integrity": "sha512-cU8v/EGSrnH+HnxV2z0J7/blxH8gq7Xh2JFT6Aroax7UohdmiJJlxApMxtKfuI7z68NvvVcmR78k2LbT6efhRg==",
-      "hasInstallScript": true,
-      "license": "MIT",
-      "dependencies": {
-        "node-addon-api": "^8.3.0",
-        "node-gyp-build": "^4.8.4"
-      },
-      "engines": {
-        "node": ">= 18"
       }
     },
     "node_modules/body-parser": {
@@ -765,26 +1433,6 @@
         "node": ">= 0.6"
       }
     },
-    "node_modules/node-addon-api": {
-      "version": "8.7.0",
-      "resolved": "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.7.0.tgz",
-      "integrity": "sha512-9MdFxmkKaOYVTV+XVRG8ArDwwQ77XIgIPyKASB1k3JPq3M8fGQQQE3YpMOrKm6g//Ktx8ivZr8xo1Qmtqub+GA==",
-      "license": "MIT",
-      "engines": {
-        "node": "^18 || ^20 || >= 21"
-      }
-    },
-    "node_modules/node-gyp-build": {
-      "version": "4.8.4",
-      "resolved": "https://registry.npmjs.org/node-gyp-build/-/node-gyp-build-4.8.4.tgz",
-      "integrity": "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==",
-      "license": "MIT",
-      "bin": {
-        "node-gyp-build": "bin.js",
-        "node-gyp-build-optional": "optional.js",
-        "node-gyp-build-test": "build-test.js"
-      }
-    },
     "node_modules/object-assign": {
       "version": "4.1.1",
       "resolved": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz",
@@ -1264,3 +1912,183 @@
     }
   }
 }
+
+
+
+package.json :
+
+
+{
+  "name": "wealthchat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongodb": "^7.1.1",
+    "socket.io": "^4.8.3"
+  }
+}
+
+
+
+server.js :
+
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const { MongoClient } = require("mongodb");
+
+const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+    cors: { origin: "*" }
+});
+
+app.use(express.static("public"));
+
+// ✅ Mongo URI from Render ENV
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri);
+
+// 🔥 DATA STORE
+let users = {};
+let lastMessageTime = {};
+let messages = [];
+
+async function startServer() {
+    try {
+        await client.connect();
+        console.log("✅ MongoDB Connected");
+
+        const db = client.db("chatDB");
+        const collection = db.collection("messages");
+
+        // 🔥 Load last 100 messages
+        messages = await collection.find().sort({ _id: 1 }).limit(100).toArray();
+
+        io.on("connection", (socket) => {
+            console.log("User connected:", socket.id);
+
+            // 🔥 Send chat history
+            socket.emit("chat history", messages);
+
+            // =====================================
+            // 🔥 JOIN
+            // =====================================
+            socket.on("join", ({ name, avatar }) => {
+                if (!name || typeof name !== "string") return;
+
+                name = name.trim().substring(0, 20);
+
+                users[socket.id] = {
+                    name,
+                    avatar: avatar || "https://i.pravatar.cc/100"
+                };
+
+                const joinMsg = {
+                    name: "System",
+                    message: `${name} joined the chat`
+                };
+
+                messages.push(joinMsg);
+                collection.insertOne(joinMsg);
+
+                io.emit("chat message", joinMsg);
+
+                // 👥 update users
+                io.emit("user list", Object.values(users));
+                io.emit("user count", Object.keys(users).length);
+            });
+
+            // =====================================
+            // 🔥 MESSAGE
+            // =====================================
+            socket.on("chat message", async (data) => {
+                if (!data || typeof data.message !== "string") return;
+
+                const now = Date.now();
+
+                // 🔥 Anti-spam (1 sec)
+                if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) {
+                    return;
+                }
+                lastMessageTime[socket.id] = now;
+
+                const user = users[socket.id];
+
+                const messageData = {
+                    name: user?.name || "Guest",
+                    avatar: user?.avatar,
+                    message: data.message.substring(0, 200)
+                };
+
+                messages.push(messageData);
+
+                // 🔥 limit memory
+                if (messages.length > 100) messages.shift();
+
+                await collection.insertOne(messageData);
+
+                io.emit("chat message", messageData);
+            });
+
+            // =====================================
+            // ✍️ TYPING
+            // =====================================
+            socket.on("typing", (name) => {
+                socket.broadcast.emit("typing", name);
+            });
+
+            // =====================================
+            // ❌ DISCONNECT
+            // =====================================
+            socket.on("disconnect", async () => {
+                const user = users[socket.id];
+
+                if (user) {
+                    const leaveMsg = {
+                        name: "System",
+                        message: `${user.name} left the chat`
+                    };
+
+                    messages.push(leaveMsg);
+                    await collection.insertOne(leaveMsg);
+
+                    io.emit("chat message", leaveMsg);
+
+                    delete users[socket.id];
+                    delete lastMessageTime[socket.id];
+
+                    // 👥 update users
+                    io.emit("user list", Object.values(users));
+                    io.emit("user count", Object.keys(users).length);
+                }
+
+                console.log("User disconnected:", socket.id);
+            });
+        });
+
+    } catch (err) {
+        console.error("❌ MongoDB Error:", err);
+    }
+}
+
+startServer();
+
+// PORT (Render)
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log("🚀 Server running on port " + PORT);
+});
+

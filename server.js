@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const { MongoClient } = require("mongodb");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const server = http.createServer(app);
@@ -12,7 +13,7 @@ const io = new Server(server, {
 
 app.use(express.static("public"));
 
-// ✅ Mongo URI from Render ENV
+// ✅ Mongo URI
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
@@ -27,39 +28,68 @@ async function startServer() {
         console.log("✅ MongoDB Connected");
 
         const db = client.db("chatDB");
-        const collection = db.collection("messages");
+        const messageCollection = db.collection("messages");
+        const usersCollection = db.collection("users");
 
-        // 🔥 Load last 100 messages
-        messages = await collection.find().sort({ _id: 1 }).limit(100).toArray();
+        // 🔥 Load messages
+        messages = await messageCollection.find().sort({ _id: 1 }).limit(100).toArray();
 
         io.on("connection", (socket) => {
             console.log("User connected:", socket.id);
 
-            // 🔥 Send chat history
             socket.emit("chat history", messages);
 
             // =====================================
-            // 🔥 JOIN
+            // 🔐 SIGNUP
             // =====================================
-            socket.on("join", ({ name, avatar }) => {
-                if (!name || typeof name !== "string") return;
+            socket.on("signup", async ({ email, password, name }) => {
+                if (!email || !password || !name) return;
 
-                name = name.trim().substring(0, 20);
+                const exist = await usersCollection.findOne({ email });
+                if (exist) {
+                    socket.emit("auth error", "User already exists");
+                    return;
+                }
+
+                const hash = await bcrypt.hash(password, 10);
+
+                await usersCollection.insertOne({
+                    email,
+                    password: hash,
+                    name,
+                    avatar: "https://i.pravatar.cc/100"
+                });
+
+                socket.emit("signup success");
+            });
+
+            // =====================================
+            // 🔐 LOGIN
+            // =====================================
+            socket.on("login", async ({ email, password }) => {
+                const user = await usersCollection.findOne({ email });
+
+                if (!user) {
+                    socket.emit("auth error", "User not found");
+                    return;
+                }
+
+                const match = await bcrypt.compare(password, user.password);
+
+                if (!match) {
+                    socket.emit("auth error", "Wrong password");
+                    return;
+                }
 
                 users[socket.id] = {
-                    name,
-                    avatar: avatar || "https://i.pravatar.cc/100"
+                    name: user.name,
+                    avatar: user.avatar
                 };
 
-                const joinMsg = {
-                    name: "System",
-                    message: `${name} joined the chat`
-                };
-
-                messages.push(joinMsg);
-                collection.insertOne(joinMsg);
-
-                io.emit("chat message", joinMsg);
+                socket.emit("login success", {
+                    name: user.name,
+                    avatar: user.avatar
+                });
 
                 // 👥 update users
                 io.emit("user list", Object.values(users));
@@ -67,35 +97,56 @@ async function startServer() {
             });
 
             // =====================================
-            // 🔥 MESSAGE
+            // 🔥 JOIN (after login)
+            // =====================================
+            socket.on("join", ({ name, avatar }) => {
+                if (!name) return;
+
+                users[socket.id] = {
+                    name,
+                    avatar: avatar || "https://i.pravatar.cc/100"
+                };
+
+                const msg = {
+                    name: "System",
+                    message: `${name} joined the chat`
+                };
+
+                messages.push(msg);
+                messageCollection.insertOne(msg);
+
+                io.emit("chat message", msg);
+
+                io.emit("user list", Object.values(users));
+                io.emit("user count", Object.keys(users).length);
+            });
+
+            // =====================================
+            // 💬 MESSAGE
             // =====================================
             socket.on("chat message", async (data) => {
                 if (!data || typeof data.message !== "string") return;
 
                 const now = Date.now();
 
-                // 🔥 Anti-spam (1 sec)
-                if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) {
-                    return;
-                }
+                if (lastMessageTime[socket.id] && now - lastMessageTime[socket.id] < 1000) return;
+
                 lastMessageTime[socket.id] = now;
 
                 const user = users[socket.id];
 
-                const messageData = {
+                const msgData = {
                     name: user?.name || "Guest",
                     avatar: user?.avatar,
                     message: data.message.substring(0, 200)
                 };
 
-                messages.push(messageData);
-
-                // 🔥 limit memory
+                messages.push(msgData);
                 if (messages.length > 100) messages.shift();
 
-                await collection.insertOne(messageData);
+                await messageCollection.insertOne(msgData);
 
-                io.emit("chat message", messageData);
+                io.emit("chat message", msgData);
             });
 
             // =====================================
@@ -112,20 +163,19 @@ async function startServer() {
                 const user = users[socket.id];
 
                 if (user) {
-                    const leaveMsg = {
+                    const msg = {
                         name: "System",
                         message: `${user.name} left the chat`
                     };
 
-                    messages.push(leaveMsg);
-                    await collection.insertOne(leaveMsg);
+                    messages.push(msg);
+                    await messageCollection.insertOne(msg);
 
-                    io.emit("chat message", leaveMsg);
+                    io.emit("chat message", msg);
 
                     delete users[socket.id];
                     delete lastMessageTime[socket.id];
 
-                    // 👥 update users
                     io.emit("user list", Object.values(users));
                     io.emit("user count", Object.keys(users).length);
                 }
@@ -141,7 +191,6 @@ async function startServer() {
 
 startServer();
 
-// PORT (Render)
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
