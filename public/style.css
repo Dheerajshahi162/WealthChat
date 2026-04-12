@@ -1,282 +1,364 @@
-/* FULL RESET */
+/* =====================================
+🔥 RESET + BASE
+===================================== */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-size: clamp(14px, 1.2vw, 16px);
+}
+
 html, body {
     height: 100%;
     margin: 0;
-    font-family: 'Segoe UI', Arial;
+    font-family: 'Segoe UI', Arial, sans-serif;
     color: white;
     overflow: hidden;
 }
 
-/* 🌌 BACKGROUND */
-.bg-slider {
+/* =====================================
+🌌 BACKGROUND (DEPTH EFFECT)
+===================================== */
+body {
+    background: #000;
+}
+
+body::before {
+    content: "";
     position: fixed;
-    width: 100%;
-    height: 100%;
+    inset: 0;
+    background: radial-gradient(circle at top, #1a1a1a, #000);
+    z-index: -2;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(255,215,0,0.05), transparent);
     z-index: -1;
 }
 
-.bg-slider img {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-    transition: opacity 4s ease-in-out;
-}
-
-.bg-slider img.active {
-    opacity: 1;
-}
-
-/* 🔥 LOGIN */
+/* =====================================
+🔥 LOGIN (CENTERED GLASS)
+===================================== */
 .login {
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 10px;
     background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(30px);
 }
 
 .login h2 {
     color: gold;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
 }
 
 .login input {
-    padding: 10px;
-    margin: 10px;
-    width: 220px;
-    border-radius: 6px;
+    padding: 12px;
+    width: 250px;
+    border-radius: 12px;
     border: none;
+    background: #111;
+    color: white;
+    transition: all 0.2s ease;
 }
 
-/* 🔥 AVATAR */
+.login input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px gold, 0 0 15px rgba(255,215,0,0.4);
+}
+
+/* =====================================
+🔥 AVATAR (SMOOTH GRID)
+===================================== */
 .avatar-select {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    max-width: 280px;
+    max-width: 260px;
 }
 
 .avatar-select img {
-    width: 50px;
+    width: 48px;
     margin: 5px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: 0.2s;
+    transition: all 0.2s ease;
 }
 
 .avatar-select img:hover {
-    transform: scale(1.1);
+    transform: scale(1.1) rotate(2deg);
 }
 
 .avatar-select img.selected {
     border: 2px solid gold;
-    transform: scale(1.1);
+    transform: scale(1.2);
 }
 
-/* MAIN */
+/* =====================================
+🔥 APP LAYOUT
+===================================== */
 .app {
     display: flex;
     height: 100%;
+    animation: appFade 0.4s ease;
 }
 
-/* 🔥 SIDEBAR */
+/* =====================================
+🔥 SIDEBAR (PREMIUM GLASS)
+===================================== */
 .sidebar {
-    width: 30%;
-    background: rgba(0,0,0,0.9);
-    border-right: 1px solid #333;
+    width: min(300px, 30%);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(30px);
     padding: 10px;
     overflow-y: auto;
-}
-
-.sidebar h3 {
-    text-align: center;
-    color: gold;
+    border-right: 1px solid rgba(255,255,255,0.1);
 }
 
 /* USER LIST */
 #userList div {
-    padding: 10px;
-    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 12px 22px;
+    margin: 6px 0;
+    border-radius: 12px;
     cursor: pointer;
-    transition: 0.2s;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
 #userList div:hover {
-    background: #222;
+    background: rgba(255,255,255,0.08);
+    transform: translateX(5px);
 }
 
-/* CHAT */
+#userList div.active {
+    background: rgba(255,215,0,0.2);
+}
+
+/* ONLINE DOT */
+#userList div::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: lime;
+    border-radius: 50%;
+    position: absolute;
+    left: 6px;
+    animation: pulse 1.5s infinite;
+}
+
+/* =====================================
+🔥 CHAT SECTION
+===================================== */
 .chat-section {
-    width: 70%;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(25px);
 }
 
-/* HEADER */
+/* =====================================
+🔥 HEADER (UPGRADED)
+===================================== */
 .header {
-    background: linear-gradient(135deg, #000, #111, #222);
-    padding: 15px;
-    text-align: center;
-    font-weight: bold;
+    padding: 12px;
     color: gold;
-    border-bottom: 2px solid gold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-/* STATUS */
-#status {
-    font-size: 12px;
-    color: #ccc;
-}
-
-/* CHAT BOX */
+/* =====================================
+💬 CHAT BOX
+===================================== */
 .chat-box {
     flex: 1;
-    padding: 10px;
+    padding: 12px;
     overflow-y: auto;
     scroll-behavior: smooth;
 }
 
-/* 🔥 SCROLLBAR */
 .chat-box::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 .chat-box::-webkit-scrollbar-thumb {
     background: gold;
-    border-radius: 10px;
 }
 
-/* MESSAGE */
+/* =====================================
+💬 MESSAGE (ADVANCED BUBBLES)
+===================================== */
 .message {
     max-width: 70%;
-    padding: 10px;
-    margin: 6px;
-    border-radius: 12px;
-    animation: fadeIn 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    padding: 10px 14px;
+    margin: 6px 10px;
+    border-radius: 18px;
+    position: relative;
+    animation: fadeInUp 0.25s ease;
 }
 
 /* YOU */
 .message.you {
-    background: linear-gradient(135deg, #2b2b2b, #444);
+    background: linear-gradient(135deg, #2e7d32, #43a047);
     margin-left: auto;
-    color: yellow;
-    border-bottom-right-radius: 0;
 }
 
 /* OTHER */
 .message.other {
-    background: linear-gradient(135deg, #1a1a1a, #333);
-    border-bottom-left-radius: 0;
+    background: #2a2a2a;
+}
+
+/* BUBBLE TAIL */
+.message.you::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 10px;
+    border: 6px solid transparent;
+    border-left-color: #43a047;
+}
+
+.message.other::after {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 10px;
+    border: 6px solid transparent;
+    border-right-color: #2a2a2a;
 }
 
 /* SYSTEM */
 .message.system {
     text-align: center;
     color: gray;
-}
-
-/* ANIMATION */
-@keyframes fadeIn {
-    from {opacity:0; transform:translateY(10px);}
-    to {opacity:1; transform:translateY(0);}
-}
-
-/* TYPING */
-.typing {
     font-size: 12px;
-    color: #aaa;
-    padding: 5px 10px;
 }
 
-/* INPUT */
+/* IMAGE */
+.message img {
+    border-radius: 10px;
+    margin-top: 5px;
+    max-width: 100%;
+}
+
+/* =====================================
+✍️ INPUT (MODERN)
+===================================== */
 .input-box {
     display: flex;
+    gap: 6px;
     padding: 10px;
-    background: #000;
-    border-top: 2px solid gold;
+    background: rgba(0,0,0,0.9);
+    border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 .input-box input {
     flex: 1;
     padding: 10px;
-    border-radius: 6px;
+    border-radius: 12px;
     border: none;
+    background: #1a1a1a;
+    color: white;
 }
 
-/* INPUT FOCUS */
 .input-box input:focus {
-    outline: 2px solid gold;
+    outline: none;
+    box-shadow: 0 0 0 2px gold;
 }
 
-/* BUTTON */
+/* =====================================
+🔘 BUTTON (MODERN)
+===================================== */
 button {
     padding: 10px;
-    background: gold;
+    background: linear-gradient(135deg, gold, orange);
+    border-radius: 12px;
     border: none;
-    border-radius: 6px;
     cursor: pointer;
     transition: 0.2s;
 }
 
 button:hover {
-    background: orange;
+    transform: scale(1.08);
 }
 
 button:active {
     transform: scale(0.95);
 }
 
-/* 🔥 EMOJI PICKER */
+/* =====================================
+🔔 NOTIFICATION
+===================================== */
+.notif {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: red;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+}
+
+/* =====================================
+😀 EMOJI
+===================================== */
 .emoji-picker {
     position: fixed;
-    bottom: 80px;
+    bottom: 85px;
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
     max-width: 400px;
-
-    background: rgba(20,20,20,0.95);
-    border-radius: 10px;
+    background: #1a1a1a;
+    border-radius: 12px;
     padding: 10px;
-
-    max-height: 200px;
-    overflow-y: auto;
-
-    box-shadow: 0 0 15px rgba(0,0,0,0.6);
 }
 
-/* EMOJI */
-.emoji-row span {
-    font-size: 20px;
-    margin: 5px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.emoji-row span:hover {
-    transform: scale(1.2);
-}
-
-/* HIDDEN */
-.hidden {
-    display: none;
-}
-
-/* 📱 MOBILE */
+/* =====================================
+📱 MOBILE
+===================================== */
 @media (max-width: 600px) {
-    .sidebar {
-        display: none;
-    }
-
-    .chat-section {
+    .sidebar { display: none; }
+    .message { max-width: 90%; }
+    .input-box {
+        position: fixed;
+        bottom: 0;
         width: 100%;
     }
-
-    .login input {
-        width: 80%;
+    .chat-box {
+        padding-bottom: 70px;
     }
+}
+
+/* =====================================
+🎬 ANIMATIONS
+===================================== */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes appFade {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+    0% {opacity:1;}
+    50% {opacity:0.3;}
+    100% {opacity:1;}
 }

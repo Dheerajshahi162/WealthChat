@@ -1,115 +1,291 @@
 const socket = io();
 
-// 🔔 SOUND (optimized)
+// 🔔 SOUND (SAFE PLAY)
 const msgSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
 
 // =====================================
 // 🔥 GLOBAL STATE
 // =====================================
-let username = localStorage.getItem("username");
-let avatar = localStorage.getItem("avatar");
-let typingTimeout;
-let isTyping = false;
-
-// =====================================
-// 🔥 AUTO LOGIN (NEW)
-// =====================================
-window.onload = () => {
-    if (username) {
-        document.getElementById("login").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-
-        socket.emit("join", { name: username, avatar });
-    }
+const state = {
+    username: localStorage.getItem("username"),
+    avatar: localStorage.getItem("avatar"),
+    isTyping: false,
+    joined: false,
+    lastSent: 0,
+    lastSender: null
 };
 
-// =====================================
-// 🔥 AVATAR SELECT
-// =====================================
-function selectAvatar(img) {
-    document.querySelectorAll(".avatar-select img").forEach(i => i.classList.remove("selected"));
-    img.classList.add("selected");
-    avatar = img.src;
-}
+let typingTimeout;
 
 // =====================================
-// 🔥 START CHAT
+// 🚀 INIT
 // =====================================
-function startChat() {
-    const nameInput = document.getElementById("name").value.trim();
+document.addEventListener("DOMContentLoaded", () => {
 
-    if (!nameInput) {
-        alert("Enter name!");
-        return;
+    if (state.username && state.avatar) {
+        showApp();
+        joinServer();
     }
 
-    username = nameInput.substring(0, 20);
-    avatar = avatar || "https://i.pravatar.cc/100";
+    const msgInput = document.getElementById("msg");
 
-    localStorage.setItem("username", username);
-    localStorage.setItem("avatar", avatar);
+    msgInput?.addEventListener("input", () => {
+        if (!state.isTyping && state.username) {
+            socket.emit("typing", state.username);
+            state.isTyping = true;
+        }
 
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(stopTyping, 1200);
+    });
+
+    msgInput?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") send();
+    });
+});
+
+// =====================================
+// 🔁 RECONNECT
+// =====================================
+socket.on("connect", () => {
+    if (state.username && state.avatar) {
+        state.joined = false;
+        joinServer();
+    }
+});
+
+// =====================================
+// 🔥 UI SWITCH
+// =====================================
+function showApp() {
     document.getElementById("login").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
 
-    socket.emit("join", { name: username, avatar });
+    document.getElementById("me").innerHTML = `
+        <img src="${state.avatar}" width="25" style="border-radius:50%">
+        ${state.username}
+    `;
 }
 
 // =====================================
-// 🔥 SEND MESSAGE
+// 🔥 JOIN SERVER
+// =====================================
+function joinServer() {
+    if (!state.joined && state.username) {
+        socket.emit("join", { name: state.username, avatar: state.avatar });
+        state.joined = true;
+    }
+}
+
+// =====================================
+// 🔐 LOGIN
+// =====================================
+function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!email || !password) return showAuth("❌ Fill all fields");
+
+    socket.emit("login", {
+        email,
+        password,
+        avatar: window.selectedAvatar || state.avatar
+    });
+}
+
+// =====================================
+// 🔐 SIGNUP (FIXED)
+// =====================================
+function signup() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const name = "User_" + Math.floor(Math.random() * 1000); // ✅ FIX
+
+    if (!email || !password) return showAuth("❌ Fill all fields");
+
+    socket.emit("signup", { name, email, password });
+}
+
+// =====================================
+// 🔐 AUTH UI
+// =====================================
+function showAuth(msg) {
+    document.getElementById("authMsg").innerText = msg;
+}
+
+// =====================================
+// 🔐 AUTH EVENTS
+// =====================================
+socket.on("login success", (user) => {
+    state.username = user.name;
+    state.avatar = user.avatar;
+
+    localStorage.setItem("username", state.username);
+    localStorage.setItem("avatar", state.avatar);
+
+    // ✅ BUTTON RESET
+    const btn = document.getElementById("loginBtn");
+    if (btn) {
+        btn.disabled = false;
+        btn.innerText = "Login";
+    }
+
+    showApp();
+    joinServer();
+});
+
+socket.on("signup success", () => {
+    showAuth("✅ Signup success! Login now.");
+});
+
+socket.on("auth error", (msg) => {
+    showAuth("❌ " + msg);
+
+    const btn = document.getElementById("loginBtn");
+    if (btn) {
+        btn.disabled = false;
+        btn.innerText = "Login";
+    }
+});
+
+// =====================================
+// 🔓 LOGOUT
+// =====================================
+function logout() {
+    localStorage.clear();
+    location.reload();
+}
+
+// =====================================
+// 💬 SEND MESSAGE
 // =====================================
 function send() {
     const input = document.getElementById("msg");
     const msg = input.value.trim();
 
     if (!msg) return;
+    if (msg.length > 200) return;
 
-    if (msg.length > 200) {
-        alert("Max 200 characters!");
-        return;
-    }
+    const now = Date.now();
+    if (now - state.lastSent < 800) return;
+
+    state.lastSent = now;
 
     socket.emit("chat message", { message: msg });
 
     input.value = "";
+    input.focus();
     stopTyping();
-    document.getElementById("emoji-picker").classList.add("hidden");
 }
 
 // =====================================
-// 🔥 RENDER MESSAGE (UPGRADED)
+// 🖼️ IMAGE SEND
+// =====================================
+function sendImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        alert("Max 2MB allowed");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        socket.emit("chat message", {
+            message: { type: "image", src: reader.result }
+        });
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// =====================================
+// 🔔 NOTIFICATION
+// =====================================
+function showNotification() {
+    const notif = document.getElementById("notif");
+    notif?.classList.remove("hidden");
+}
+
+// =====================================
+// 💬 RENDER MESSAGE
 // =====================================
 function renderMessage(data) {
     const chat = document.getElementById("chat");
-    const div = document.createElement("div");
 
+    const isNearBottom =
+        chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 50;
+
+    const div = document.createElement("div");
     div.classList.add("message");
 
     if (data.name === "System") {
         div.classList.add("system");
         div.textContent = data.message;
+        state.lastSender = null;
     } else {
-        const nameTag = document.createElement("b");
 
-        if (data.name === username) {
-            div.classList.add("you");
-            nameTag.textContent = "You: ";
-        } else {
-            div.classList.add("other");
-            nameTag.textContent = `${data.name}: `;
+        const isYou = data.name === state.username;
+        div.classList.add(isYou ? "you" : "other");
 
-            // 🔔 play only if tab active
+        // 🔔 SOUND SAFE
+        if (!isYou) {
             if (!document.hidden) {
+                msgSound.currentTime = 0;
                 msgSound.play().catch(() => {});
+            } else {
+                showNotification();
             }
         }
 
-        div.appendChild(nameTag);
-        div.appendChild(document.createTextNode(data.message));
+        // 👤 NAME GROUPING
+        if (state.lastSender !== data.name) {
+            const nameTag = document.createElement("b");
+            nameTag.textContent = isYou ? "You: " : `${data.name}: `;
+            div.appendChild(nameTag);
+            state.lastSender = data.name;
+        }
+
+        // 🔒 SAFE MESSAGE
+        if (typeof data.message === "object" && data.message.type === "image") {
+
+            if (data.message.src?.startsWith("data:image/")) {
+                const img = document.createElement("img");
+                img.src = data.message.src;
+                img.style.maxWidth = "150px";
+                img.style.borderRadius = "8px";
+                div.appendChild(img);
+            }
+
+        } else {
+            const span = document.createElement("span");
+            span.textContent = data.message;
+            div.appendChild(span);
+        }
+
+        // ⏰ TIME
+        if (data.time) {
+            const time = document.createElement("div");
+            time.style.fontSize = "10px";
+            time.style.opacity = "0.6";
+            time.textContent = data.time;
+            div.appendChild(time);
+        }
     }
 
     chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
+
+    // 🔥 PERFORMANCE LIMIT
+    if (chat.children.length > 150) {
+        chat.removeChild(chat.firstChild);
+    }
+
+    if (isNearBottom) {
+        chat.scrollTop = chat.scrollHeight;
+    }
 }
 
 // =====================================
@@ -120,30 +296,22 @@ socket.on("chat message", renderMessage);
 socket.on("chat history", (msgs) => {
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
+    state.lastSender = null;
     msgs.forEach(renderMessage);
 });
 
 // =====================================
-// ✍️ TYPING SYSTEM (ADVANCED)
+// ✍️ TYPING
 // =====================================
-const msgInput = document.getElementById("msg");
-
-msgInput.addEventListener("input", () => {
-    if (!isTyping) {
-        socket.emit("typing", username);
-        isTyping = true;
-    }
-
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(stopTyping, 1200);
-});
-
 function stopTyping() {
-    isTyping = false;
+    if (state.isTyping && state.username) {
+        socket.emit("stop typing", state.username);
+        state.isTyping = false;
+    }
 }
 
 socket.on("typing", (name) => {
-    if (name === username) return;
+    if (name === state.username) return;
 
     const box = document.getElementById("typing");
     box.innerText = name + " is typing...";
@@ -155,7 +323,7 @@ socket.on("typing", (name) => {
 });
 
 // =====================================
-// 👥 USER LIST
+// 👥 USERS
 // =====================================
 socket.on("user list", (users) => {
     const list = document.getElementById("userList");
@@ -164,24 +332,27 @@ socket.on("user list", (users) => {
     users.forEach(u => {
         const div = document.createElement("div");
 
-        div.innerHTML = `
-            <img src="${u.avatar}" width="30" style="border-radius:50%; margin-right:8px;">
-            ${u.name}
-        `;
+        const img = document.createElement("img");
+        img.src = u.avatar;
+        img.width = 30;
+        img.style.borderRadius = "50%";
+
+        div.appendChild(img);
+        div.append(" " + u.name);
 
         list.appendChild(div);
     });
 });
 
 // =====================================
-// 👥 USER COUNT
+// 👥 COUNT
 // =====================================
 socket.on("user count", (count) => {
     document.getElementById("status").innerText = "🟢 Online: " + count;
 });
 
 // =====================================
-// 😀 EMOJI SYSTEM
+// 😀 EMOJI
 // =====================================
 function toggleEmoji() {
     document.getElementById("emoji-picker").classList.toggle("hidden");
@@ -193,41 +364,15 @@ function addEmoji(e) {
     input.focus();
 }
 
-// click outside = close emoji
-document.addEventListener("click", (e) => {
-    const picker = document.getElementById("emoji-picker");
-    if (picker && !picker.contains(e.target) && e.target.innerText !== "😊") {
-        picker.classList.add("hidden");
-    }
-});
+// =====================================
+// 🌙 THEME
+// =====================================
+function toggleTheme() {
+    document.body.classList.toggle("light");
+}
 
 // =====================================
-// 🌌 BACKGROUND SLIDER
-// =====================================
-const images = document.querySelectorAll(".bg-slider img");
-let index = 0;
-
-setInterval(() => {
-    images[index].classList.remove("active");
-    index = (index + 1) % images.length;
-    images[index].classList.add("active");
-}, 8000);
-
-// =====================================
-// ⌨️ ENTER KEY
-// =====================================
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("msg").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") send();
-    });
-
-    document.getElementById("name").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") startChat();
-    });
-});
-
-// =====================================
-// 🌐 ONLINE / OFFLINE DETECT
+// 🌐 NETWORK
 // =====================================
 window.addEventListener("offline", () => {
     document.getElementById("status").innerText = "🔴 Offline";

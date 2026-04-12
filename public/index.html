@@ -1,139 +1,240 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>WealthChat Pro</title>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="WealthChat real-time chat system">
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <!-- 🔥 LOGIN -->
-<div id="login" class="login">
+<section id="login" class="login">
     <h2>💬 WealthChat</h2>
 
-    <input id="name" placeholder="Enter your name" autocomplete="off">
+    <form id="loginForm" autocomplete="off">
 
-    <!-- 👇 AVATAR SELECT -->
-    <div class="avatar-select" id="avatars">
-        <img src="https://i.pravatar.cc/100?img=1" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=2" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=3" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=4" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=5" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=6" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=7" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=8" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=9" onclick="selectAvatar(this)">
-        <img src="https://i.pravatar.cc/100?img=10" onclick="selectAvatar(this)">
-    </div>
+        <input id="email" type="email" placeholder="Email" required>
+        <input id="password" type="password" placeholder="Password" required minlength="4">
 
-    <button onclick="startChat()">Start Chat</button>
-</div>
+        <div id="avatars" class="avatar-select"></div>
 
-<!-- 🔥 MAIN APP -->
-<div id="app" class="app hidden">
-
-    <!-- 👥 SIDEBAR -->
-    <div class="sidebar">
-        <h3>👥 Users</h3>
-        <div id="userList"></div>
-    </div>
-
-    <!-- 💬 CHAT -->
-    <div class="chat-section">
-
-        <!-- 🔝 HEADER -->
-        <div class="header">
-            💬 WealthChat
-            <div id="status">🟢 Online: 0</div>
+        <div class="auth-buttons">
+            <button id="loginBtn" type="submit">Login</button>
+            <button type="button" id="signupBtn">Signup</button>
         </div>
 
-        <!-- 💬 MESSAGES -->
-        <div id="chat" class="chat-box"></div>
+    </form>
 
-        <!-- ✍️ TYPING -->
+    <div id="authMsg" class="auth-msg"></div>
+</section>
+
+<!-- 🔥 APP -->
+<section id="app" class="app hidden">
+
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <h3>👥 Users</h3>
+            <input id="searchUser" placeholder="Search users..." autocomplete="off">
+        </div>
+
+        <div id="userList" class="user-list"></div>
+    </aside>
+
+    <main class="chat-section">
+
+        <header class="header">
+
+            <div class="header-left">💬 WealthChat</div>
+
+            <div class="header-center">
+                <div id="me"></div>
+                <div id="mode">🌐 Global</div>
+            </div>
+
+            <div class="header-right">
+                <button id="globalBtn">⬅</button>
+                <button id="themeBtn">🌙</button>
+                <button id="logoutBtn">Logout</button>
+            </div>
+
+            <div id="notif" class="notif hidden"></div>
+            <div id="status">🟢 Online: 0</div>
+
+        </header>
+
+        <section id="chat" class="chat-box"></section>
+
         <div id="typing" class="typing"></div>
 
-        <!-- 📩 INPUT -->
-        <div class="input-box">
-            <button onclick="toggleEmoji()">😊</button>
-            <input id="msg" placeholder="Type message..." autocomplete="off">
-            <button onclick="send()">➤</button>
-        </div>
+        <footer class="input-box">
 
-        <!-- 😀 EMOJI PICKER -->
-        <div id="emoji-picker" class="emoji-picker hidden">
+            <button id="emojiBtn">😊</button>
 
-            <div class="emoji-row">
-                <span onclick="addEmoji('😀')">😀</span>
-                <span onclick="addEmoji('😁')">😁</span>
-                <span onclick="addEmoji('😂')">😂</span>
-                <span onclick="addEmoji('🤣')">🤣</span>
-                <span onclick="addEmoji('😊')">😊</span>
-                <span onclick="addEmoji('😍')">😍</span>
-                <span onclick="addEmoji('😎')">😎</span>
-            </div>
+            <input type="file" id="imageInput" accept="image/*" hidden>
+            <button id="imageBtn">📷</button>
 
-            <div class="emoji-row">
-                <span onclick="addEmoji('👍')">👍</span>
-                <span onclick="addEmoji('👎')">👎</span>
-                <span onclick="addEmoji('👏')">👏</span>
-                <span onclick="addEmoji('🙏')">🙏</span>
-                <span onclick="addEmoji('🔥')">🔥</span>
-                <span onclick="addEmoji('💯')">💯</span>
-            </div>
+            <input id="msg" placeholder="Type message..." maxlength="200">
 
-            <div class="emoji-row">
-                <span onclick="addEmoji('❤️')">❤️</span>
-                <span onclick="addEmoji('💛')">💛</span>
-                <span onclick="addEmoji('💙')">💙</span>
-                <span onclick="addEmoji('💜')">💜</span>
-                <span onclick="addEmoji('💔')">💔</span>
-            </div>
+            <button id="sendBtn">➤</button>
 
-            <div class="emoji-row">
-                <span onclick="addEmoji('🎉')">🎉</span>
-                <span onclick="addEmoji('🎂')">🎂</span>
-                <span onclick="addEmoji('🍕')">🍕</span>
-                <span onclick="addEmoji('🍔')">🍔</span>
-                <span onclick="addEmoji('🍟')">🍟</span>
-            </div>
+        </footer>
 
-        </div>
+        <div id="emoji-picker" class="emoji-picker hidden"></div>
 
-    </div>
-
-</div>
+    </main>
+</section>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="script.js"></script>
 
-<!-- 🔥 UX IMPROVEMENT SCRIPT -->
+<!-- 🔥 FINAL UX ENGINE -->
 <script>
-    // ENTER key = send message
-    document.addEventListener("DOMContentLoaded", () => {
-        const msgInput = document.getElementById("msg");
-        const nameInput = document.getElementById("name");
+document.addEventListener("DOMContentLoaded", () => {
 
-        if (msgInput) {
-            msgInput.addEventListener("keypress", function(e) {
-                if (e.key === "Enter") send();
-            });
-        }
+    const msgInput = document.getElementById("msg");
+    const picker = document.getElementById("emoji-picker");
+    const emojiBtn = document.getElementById("emojiBtn");
+    const notif = document.getElementById("notif");
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
 
-        if (nameInput) {
-            nameInput.addEventListener("keypress", function(e) {
-                if (e.key === "Enter") startChat();
-            });
-        }
+    const signupBtn = document.getElementById("signupBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const themeBtn = document.getElementById("themeBtn");
+    const globalBtn = document.getElementById("globalBtn");
+    const sendBtn = document.getElementById("sendBtn");
+    const imageBtn = document.getElementById("imageBtn");
+    const imageInput = document.getElementById("imageInput");
 
-        // click outside emoji = close
-        document.addEventListener("click", function(e) {
-            const picker = document.getElementById("emoji-picker");
-            if (!picker.contains(e.target) && e.target.innerText !== "😊") {
-                picker.classList.add("hidden");
-            }
-        });
+    // =====================================
+    // ✅ LOGIN FIX
+    // =====================================
+    loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        if (loginBtn.disabled) return;
+
+        loginBtn.disabled = true;
+        loginBtn.innerText = "⏳ Logging...";
+
+        login();
     });
+
+    // =====================================
+    // 🔥 BUTTON EVENTS
+    // =====================================
+    signupBtn.addEventListener("click", signup);
+    logoutBtn.addEventListener("click", logout);
+    themeBtn.addEventListener("click", toggleTheme);
+    globalBtn.addEventListener("click", () => {});
+    sendBtn.addEventListener("click", send);
+
+    imageBtn.addEventListener("click", () => imageInput.click());
+    imageInput.addEventListener("change", sendImage);
+
+    // =====================================
+    // 🔥 AUTO FOCUS
+    // =====================================
+    document.getElementById("email").focus();
+
+    // =====================================
+    // 🔥 AVATAR SYSTEM
+    // =====================================
+    const avatarBox = document.getElementById("avatars");
+
+    let selectedAvatar = "https://i.pravatar.cc/100?img=1";
+
+    for (let i = 1; i <= 10; i++) {
+        const img = document.createElement("img");
+        img.src = `https://i.pravatar.cc/100?img=${i}`;
+
+        if (i === 1) img.classList.add("selected");
+
+        img.onclick = () => {
+            document.querySelectorAll("#avatars img").forEach(i => i.classList.remove("selected"));
+            img.classList.add("selected");
+            window.selectedAvatar = img.src;
+        };
+
+        avatarBox.appendChild(img);
+    }
+
+    window.selectedAvatar = selectedAvatar;
+
+    // =====================================
+    // 😀 EMOJI
+    // =====================================
+    const emojis = ["😀","😂","😍","😎","🔥","👍","🙏","💯","❤️"];
+
+    emojis.forEach(e => {
+        const span = document.createElement("span");
+        span.textContent = e;
+        span.onclick = () => addEmoji(e);
+        picker.appendChild(span);
+    });
+
+    emojiBtn.onclick = () => picker.classList.toggle("hidden");
+
+    // =====================================
+    // 🔒 CLOSE EMOJI
+    // =====================================
+    document.addEventListener("click", (e) => {
+        if (!picker.contains(e.target) && !emojiBtn.contains(e.target)) {
+            picker.classList.add("hidden");
+        }
+    });
+
+    // =====================================
+    // 🔍 SEARCH
+    // =====================================
+    let timeout;
+    document.getElementById("searchUser").addEventListener("input", function () {
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+            const value = this.value.toLowerCase();
+
+            document.querySelectorAll("#userList div").forEach(u => {
+                u.style.display = u.innerText.toLowerCase().includes(value) ? "flex" : "none";
+            });
+
+        }, 200);
+    });
+
+    // =====================================
+    // 🔔 NOTIFICATION
+    // =====================================
+    window.showNotification = function () {
+        if (document.hidden) {
+            notif.innerText = "🔔 New Message";
+            notif.classList.remove("hidden");
+        }
+    };
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            notif.classList.add("hidden");
+        }
+    });
+
+    // =====================================
+    // 🌐 NETWORK
+    // =====================================
+    window.addEventListener("offline", () => {
+        document.getElementById("status").innerText = "🔴 Offline";
+    });
+
+    window.addEventListener("online", () => {
+        document.getElementById("status").innerText = "🟢 Online";
+    });
+
+});
 </script>
 
 </body>
