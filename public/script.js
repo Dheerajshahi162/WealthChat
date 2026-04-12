@@ -83,7 +83,7 @@ function joinServer() {
 }
 
 // =====================================
-// 🔐 LOGIN (DEBUG ADDED)
+// 🔐 LOGIN
 // =====================================
 function login() {
     const email = document.getElementById("email").value.trim();
@@ -141,13 +141,12 @@ socket.on("login success", (user) => {
         btn.innerText = "Login";
     }
 
-    // 🔥 FORCE UI SWITCH
+    // 🔥 UI SWITCH
     showApp();
 
-    // 🔥 SAFE JOIN DELAY
-    setTimeout(() => {
-        joinServer();
-    }, 100);
+    // ✅🔥 FINAL FIX (IMPORTANT)
+    state.joined = false; // reset
+    joinServer();         // force join
 });
 
 socket.on("signup success", () => {

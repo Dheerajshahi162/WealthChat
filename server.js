@@ -71,9 +71,6 @@ async function startServer() {
             // 🔐 SIGNUP
             // =====================================
             socket.on("signup", async ({ email, password, name }) => {
-
-                console.log("📥 Signup:", email); // 🔥 DEBUG
-
                 try {
                     if (!email || !password || !name) {
                         socket.emit("auth error", "All fields required");
@@ -105,11 +102,11 @@ async function startServer() {
             });
 
             // =====================================
-            // 🔐 LOGIN (FIXED + DEBUG)
+            // 🔐 LOGIN (FINAL FIXED)
             // =====================================
-            socket.on("login", async ({ email, password }) => {
+            socket.on("login", async ({ email, password, avatar }) => {
 
-                console.log("📥 Login:", email); // 🔥 DEBUG
+                console.log("📥 Login:", email);
 
                 try {
                     if (!email || !password) {
@@ -131,19 +128,29 @@ async function startServer() {
                         return;
                     }
 
-                    // ✅ SAVE USER SESSION
+                    // ✅ SAVE USER
                     users[socket.id] = {
                         name: user.name,
-                        avatar: user.avatar
+                        avatar: avatar || user.avatar
                     };
 
-                    // ✅ RESPONSE
+                    // ✅ SEND SUCCESS
                     socket.emit("login success", {
                         name: user.name,
-                        avatar: user.avatar
+                        avatar: avatar || user.avatar
                     });
 
-                    // 🔥 UPDATE USERS
+                    // ✅🔥 AUTO JOIN (MAIN FIX)
+                    const msg = {
+                        name: "System",
+                        message: `${user.name} joined the chat`,
+                        time: new Date().toLocaleTimeString()
+                    };
+
+                    messages.push(msg);
+                    await messageCollection.insertOne(msg);
+
+                    io.emit("chat message", msg);
                     io.emit("user list", Object.values(users));
                     io.emit("user count", Object.keys(users).length);
 
@@ -154,34 +161,12 @@ async function startServer() {
             });
 
             // =====================================
-            // 🔥 JOIN
+            // ❌ JOIN DISABLED (FIX)
             // =====================================
-            socket.on("join", ({ name, avatar }) => {
-
-                if (!name) return;
-                if (users[socket.id]) return;
-
-                users[socket.id] = {
-                    name: clean(name),
-                    avatar: avatar || "https://i.pravatar.cc/100"
-                };
-
-                const msg = {
-                    name: "System",
-                    message: `${name} joined the chat`,
-                    time: new Date().toLocaleTimeString()
-                };
-
-                messages.push(msg);
-                messageCollection.insertOne(msg);
-
-                io.emit("chat message", msg);
-                io.emit("user list", Object.values(users));
-                io.emit("user count", Object.keys(users).length);
-            });
+            // socket.on("join", ...) ❌ REMOVE THIS
 
             // =====================================
-            // 💬 MESSAGE (FIXED IMAGE SUPPORT)
+            // 💬 MESSAGE
             // =====================================
             socket.on("chat message", async (data) => {
                 try {
@@ -200,7 +185,6 @@ async function startServer() {
 
                     let safeMessage;
 
-                    // ✅ FIX: OBJECT IMAGE SUPPORT
                     if (typeof data.message === "object") {
                         safeMessage = data.message;
                     } else {
