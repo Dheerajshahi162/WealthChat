@@ -1,4 +1,6 @@
-const socket = io();
+// ✅ SINGLE SOCKET (FINAL FIX)
+window.socket = io();
+const socket = window.socket;
 
 // 🔔 SOUND (SAFE PLAY)
 const msgSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
@@ -48,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // 🔁 RECONNECT
 // =====================================
 socket.on("connect", () => {
+    console.log("🔌 Connected:", socket.id);
+
     if (state.username && state.avatar) {
         state.joined = false;
         joinServer();
@@ -72,17 +76,20 @@ function showApp() {
 // =====================================
 function joinServer() {
     if (!state.joined && state.username) {
+        console.log("🚀 Joining server...");
         socket.emit("join", { name: state.username, avatar: state.avatar });
         state.joined = true;
     }
 }
 
 // =====================================
-// 🔐 LOGIN
+// 🔐 LOGIN (DEBUG ADDED)
 // =====================================
 function login() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
+
+    console.log("🚀 LOGIN CLICKED");
 
     if (!email || !password) return showAuth("❌ Fill all fields");
 
@@ -94,13 +101,13 @@ function login() {
 }
 
 // =====================================
-// 🔐 SIGNUP (FIXED)
+// 🔐 SIGNUP
 // =====================================
 function signup() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    const name = "User_" + Math.floor(Math.random() * 1000); // ✅ FIX
+    const name = "User_" + Math.floor(Math.random() * 1000);
 
     if (!email || !password) return showAuth("❌ Fill all fields");
 
@@ -115,24 +122,32 @@ function showAuth(msg) {
 }
 
 // =====================================
-// 🔐 AUTH EVENTS
+// 🔐 AUTH EVENTS (FINAL FIX)
 // =====================================
 socket.on("login success", (user) => {
+
+    console.log("✅ LOGIN SUCCESS RECEIVED", user);
+
     state.username = user.name;
     state.avatar = user.avatar;
 
     localStorage.setItem("username", state.username);
     localStorage.setItem("avatar", state.avatar);
 
-    // ✅ BUTTON RESET
+    // 🔥 BUTTON RESET
     const btn = document.getElementById("loginBtn");
     if (btn) {
         btn.disabled = false;
         btn.innerText = "Login";
     }
 
+    // 🔥 FORCE UI SWITCH
     showApp();
-    joinServer();
+
+    // 🔥 SAFE JOIN DELAY
+    setTimeout(() => {
+        joinServer();
+    }, 100);
 });
 
 socket.on("signup success", () => {
@@ -140,6 +155,8 @@ socket.on("signup success", () => {
 });
 
 socket.on("auth error", (msg) => {
+    console.log("❌ AUTH ERROR:", msg);
+
     showAuth("❌ " + msg);
 
     const btn = document.getElementById("loginBtn");
@@ -231,7 +248,6 @@ function renderMessage(data) {
         const isYou = data.name === state.username;
         div.classList.add(isYou ? "you" : "other");
 
-        // 🔔 SOUND SAFE
         if (!isYou) {
             if (!document.hidden) {
                 msgSound.currentTime = 0;
@@ -241,7 +257,6 @@ function renderMessage(data) {
             }
         }
 
-        // 👤 NAME GROUPING
         if (state.lastSender !== data.name) {
             const nameTag = document.createElement("b");
             nameTag.textContent = isYou ? "You: " : `${data.name}: `;
@@ -249,7 +264,6 @@ function renderMessage(data) {
             state.lastSender = data.name;
         }
 
-        // 🔒 SAFE MESSAGE
         if (typeof data.message === "object" && data.message.type === "image") {
 
             if (data.message.src?.startsWith("data:image/")) {
@@ -266,7 +280,6 @@ function renderMessage(data) {
             div.appendChild(span);
         }
 
-        // ⏰ TIME
         if (data.time) {
             const time = document.createElement("div");
             time.style.fontSize = "10px";
@@ -278,7 +291,6 @@ function renderMessage(data) {
 
     chat.appendChild(div);
 
-    // 🔥 PERFORMANCE LIMIT
     if (chat.children.length > 150) {
         chat.removeChild(chat.firstChild);
     }
